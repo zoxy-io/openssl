@@ -1825,6 +1825,7 @@ rsaz_avx2_eligible:
 	.byte	0xf3,0xc3
 
 
+.section	.rodata
 .p2align	6
 .Land_mask:
 .quad	0x1fffffff,0x1fffffff,0x1fffffff,0x1fffffff
@@ -1836,6 +1837,7 @@ rsaz_avx2_eligible:
 .long	0,0,0,0, 1,1,1,1
 .long	2,2,2,2, 3,3,3,3
 .long	4,4,4,4, 4,4,4,4
+.text
 .p2align	6
 
 .def	rsaz_se_handler;	.scl 3;	.type 32;	.endef

@@ -3,12 +3,13 @@
 #if __ARM_MAX_ARCH__>=7
 
 .text
+.section	__TEXT,__const
 .align	5
 Lrcon:
 .long	0x01,0x01,0x01,0x01
 .long	0x0c0f0e0d,0x0c0f0e0d,0x0c0f0e0d,0x0c0f0e0d	// rotate-n-splat
 .long	0x1b,0x1b,0x1b,0x1b
-
+.previous
 .globl	_aes_v8_set_encrypt_key
 
 .align	5
@@ -31,7 +32,8 @@ Lenc_key:
 	tst	w1,#0x3f
 	b.ne	Lenc_key_abort
 
-	adr	x3,Lrcon
+	adrp	x3,Lrcon@PAGE
+	add	x3,x3,Lrcon@PAGEOFF
 	cmp	w1,#192
 
 	eor	v0.16b,v0.16b,v0.16b
@@ -2227,7 +2229,7 @@ Lctr32_done_unroll:
 	ldp	d8,d9,[sp, #16]
 	ldp	d10,d11,[sp, #32]
 	ldp	d12,d13,[sp, #48]
-	ldp	d15,d16,[sp, #64]
+	ldp	d14,d15,[sp, #64]
 	ldr	x29,[sp],#80
 	ret
 

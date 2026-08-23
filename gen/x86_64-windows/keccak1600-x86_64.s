@@ -487,6 +487,7 @@ SHA3_squeeze:
 	.byte	0xf3,0xc3
 
 .LSEH_end_SHA3_squeeze:
+.section	.rodata
 .p2align	8
 .quad	0,0,0,0,0,0,0,0
 

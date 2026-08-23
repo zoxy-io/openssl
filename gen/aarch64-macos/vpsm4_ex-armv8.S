@@ -1,4 +1,4 @@
-// Copyright 2022-2024 The OpenSSL Project Authors. All Rights Reserved.
+// Copyright 2022-2026 The OpenSSL Project Authors. All Rights Reserved.
 //
 // Licensed under the Apache License 2.0 (the "License").  You may not use
 // this file except in compliance with the License.  You can obtain a copy
@@ -34,13 +34,25 @@ Lfk:
 Lshuffles:
 .quad	0x0B0A090807060504,0x030201000F0E0D0C
 Lxts_magic:
+#ifndef __AARCH64EB__
 .quad	0x0101010101010187,0x0101010101010101
+#else
+.quad	0x0101010101010101,0x0101010101010187
+#endif
 Lsbox_magic:
+#ifndef __AARCH64EB__
 .quad	0x0b0e0104070a0d00,0x0306090c0f020508
 .quad	0x62185a2042387a00,0x22581a6002783a40
 .quad	0x15df62a89e54e923,0xc10bb67c4a803df7
 .quad	0xb9aa6b78c1d21300,0x1407c6d56c7fbead
 .quad	0x6404462679195b3b,0xe383c1a1fe9edcbc
+#else
+.quad	0x0306090c0f020508,0x0b0e0104070a0d00
+.quad	0x22581a6002783a40,0x62185a2042387a00
+.quad	0xc10bb67c4a803df7,0x15df62a89e54e923
+.quad	0x1407c6d56c7fbead,0xb9aa6b78c1d21300
+.quad	0xe383c1a1fe9edcbc,0x6404462679195b3b
+#endif
 .quad	0x0f0f0f0f0f0f0f0f,0x0f0f0f0f0f0f0f0f
 
 
@@ -49,22 +61,27 @@ Lsbox_magic:
 _vpsm4_ex_set_key:
 	AARCH64_VALID_CALL_TARGET
 	ld1	{v5.4s},[x0]
-	ldr	q26, Lsbox_magic
-	ldr	q27, Lsbox_magic+16
-	ldr	q28, Lsbox_magic+32
-	ldr	q29, Lsbox_magic+48
-	ldr	q30, Lsbox_magic+64
-	ldr	q31, Lsbox_magic+80
+	adrp	x9, Lsbox_magic@PAGE
+	add	x9, x9, Lsbox_magic@PAGEOFF
+	ldr	q26, [x9]
+	ldr	q27, [x9, 16]
+	ldr	q28, [x9, 32]
+	ldr	q29, [x9, 48]
+	ldr	q30, [x9, 64]
+	ldr	q31, [x9, 80]
 #ifndef __AARCH64EB__
 	rev32	v5.16b,v5.16b
 #endif
-	adr	x5,Lshuffles
+	adrp	x5,Lshuffles@PAGE
+	add	x5,x5,Lshuffles@PAGEOFF
 	ld1	{v7.2d},[x5]
-	adr	x5,Lfk
+	adrp	x5,Lfk@PAGE
+	add	x5,x5,Lfk@PAGEOFF
 	ld1	{v6.2d},[x5]
 	eor	v5.16b,v5.16b,v6.16b
 	mov	x6,#32
-	adr	x5,Lck
+	adrp	x5,Lck@PAGE
+	add	x5,x5,Lck@PAGEOFF
 	movi	v0.16b,#64
 	cbnz	w2,1f
 	add	x1,x1,124
@@ -622,12 +639,14 @@ _vpsm4_ex_set_decrypt_key:
 _vpsm4_ex_encrypt:
 	AARCH64_VALID_CALL_TARGET
 	ld1	{v4.4s},[x0]
-	ldr	q26, Lsbox_magic
-	ldr	q27, Lsbox_magic+16
-	ldr	q28, Lsbox_magic+32
-	ldr	q29, Lsbox_magic+48
-	ldr	q30, Lsbox_magic+64
-	ldr	q31, Lsbox_magic+80
+	adrp	x9, Lsbox_magic@PAGE
+	add	x9, x9, Lsbox_magic@PAGEOFF
+	ldr	q26, [x9]
+	ldr	q27, [x9, 16]
+	ldr	q28, [x9, 32]
+	ldr	q29, [x9, 48]
+	ldr	q30, [x9, 64]
+	ldr	q31, [x9, 80]
 #ifndef __AARCH64EB__
 	rev32	v4.16b,v4.16b
 #endif
@@ -763,12 +782,14 @@ _vpsm4_ex_encrypt:
 _vpsm4_ex_decrypt:
 	AARCH64_VALID_CALL_TARGET
 	ld1	{v4.4s},[x0]
-	ldr	q26, Lsbox_magic
-	ldr	q27, Lsbox_magic+16
-	ldr	q28, Lsbox_magic+32
-	ldr	q29, Lsbox_magic+48
-	ldr	q30, Lsbox_magic+64
-	ldr	q31, Lsbox_magic+80
+	adrp	x9, Lsbox_magic@PAGE
+	add	x9, x9, Lsbox_magic@PAGEOFF
+	ldr	q26, [x9]
+	ldr	q27, [x9, 16]
+	ldr	q28, [x9, 32]
+	ldr	q29, [x9, 48]
+	ldr	q30, [x9, 64]
+	ldr	q31, [x9, 80]
 #ifndef __AARCH64EB__
 	rev32	v4.16b,v4.16b
 #endif
@@ -910,12 +931,14 @@ _vpsm4_ex_ecb_encrypt:
 	stp	d12,d13,[sp,#32]
 	stp	d14,d15,[sp,#48]
 	stp	x29,x30,[sp,#64]
-	ldr	q26, Lsbox_magic
-	ldr	q27, Lsbox_magic+16
-	ldr	q28, Lsbox_magic+32
-	ldr	q29, Lsbox_magic+48
-	ldr	q30, Lsbox_magic+64
-	ldr	q31, Lsbox_magic+80
+	adrp	x9, Lsbox_magic@PAGE
+	add	x9, x9, Lsbox_magic@PAGEOFF
+	ldr	q26, [x9]
+	ldr	q27, [x9, 16]
+	ldr	q28, [x9, 32]
+	ldr	q29, [x9, 48]
+	ldr	q30, [x9, 64]
+	ldr	q31, [x9, 80]
 Lecb_8_blocks_process:
 	cmp	w2,#8
 	b.lt	Lecb_4_blocks_process
@@ -1157,12 +1180,14 @@ Lecb_4_blocks_process:
 _vpsm4_ex_cbc_encrypt:
 	AARCH64_VALID_CALL_TARGET
 	lsr	x2,x2,4
-	ldr	q26, Lsbox_magic
-	ldr	q27, Lsbox_magic+16
-	ldr	q28, Lsbox_magic+32
-	ldr	q29, Lsbox_magic+48
-	ldr	q30, Lsbox_magic+64
-	ldr	q31, Lsbox_magic+80
+	adrp	x9, Lsbox_magic@PAGE
+	add	x9, x9, Lsbox_magic@PAGEOFF
+	ldr	q26, [x9]
+	ldr	q27, [x9, 16]
+	ldr	q28, [x9, 32]
+	ldr	q29, [x9, 48]
+	ldr	q30, [x9, 64]
+	ldr	q31, [x9, 80]
 	cbz	w5,Ldec
 	ld1	{v3.4s},[x4]
 Lcbc_4_blocks_enc:
@@ -2148,12 +2173,14 @@ _vpsm4_ex_ctr32_encrypt_blocks:
 #ifndef __AARCH64EB__
 	rev32	v3.16b,v3.16b
 #endif
-	ldr	q26, Lsbox_magic
-	ldr	q27, Lsbox_magic+16
-	ldr	q28, Lsbox_magic+32
-	ldr	q29, Lsbox_magic+48
-	ldr	q30, Lsbox_magic+64
-	ldr	q31, Lsbox_magic+80
+	adrp	x9, Lsbox_magic@PAGE
+	add	x9, x9, Lsbox_magic@PAGEOFF
+	ldr	q26, [x9]
+	ldr	q27, [x9, 16]
+	ldr	q28, [x9, 32]
+	ldr	q29, [x9, 48]
+	ldr	q30, [x9, 64]
+	ldr	q31, [x9, 80]
 	cmp	w2,#1
 	b.ne	1f
 	// fast processing for one single block without
@@ -2547,12 +2574,14 @@ _vpsm4_ex_xts_encrypt_gb:
 	mov	w28,w6
 	ld1	{v16.4s}, [x5]
 	mov	x3,x27
-	ldr	q26, Lsbox_magic
-	ldr	q27, Lsbox_magic+16
-	ldr	q28, Lsbox_magic+32
-	ldr	q29, Lsbox_magic+48
-	ldr	q30, Lsbox_magic+64
-	ldr	q31, Lsbox_magic+80
+	adrp	x9, Lsbox_magic@PAGE
+	add	x9, x9, Lsbox_magic@PAGEOFF
+	ldr	q26, [x9]
+	ldr	q27, [x9, 16]
+	ldr	q28, [x9, 32]
+	ldr	q29, [x9, 48]
+	ldr	q30, [x9, 64]
+	ldr	q31, [x9, 80]
 #ifndef __AARCH64EB__
 	rev32	v16.16b,v16.16b
 #endif
@@ -3189,7 +3218,8 @@ Lxts_4_blocks_process_gb:
 	rev32	v25.16b,v25.16b
 #endif
 	rbit	v2.16b,v25.16b
-	ldr	q0, Lxts_magic
+	adrp	x9, Lxts_magic@PAGE
+	ldr	q0, [x9, Lxts_magic@PAGEOFF]
 	shl	v17.16b, v2.16b, #1
 	ext	v1.16b, v2.16b, v2.16b,#15
 	ushr	v1.16b, v1.16b, #7
@@ -3197,7 +3227,8 @@ Lxts_4_blocks_process_gb:
 	eor	v17.16b, v17.16b, v1.16b
 	rbit	v17.16b,v17.16b
 	rbit	v2.16b,v17.16b
-	ldr	q0, Lxts_magic
+	adrp	x9, Lxts_magic@PAGE
+	ldr	q0, [x9, Lxts_magic@PAGEOFF]
 	shl	v18.16b, v2.16b, #1
 	ext	v1.16b, v2.16b, v2.16b,#15
 	ushr	v1.16b, v1.16b, #7
@@ -3215,7 +3246,8 @@ Lxts_4_blocks_process_gb:
 	rev32	v17.16b,v17.16b
 #endif
 	rbit	v2.16b,v17.16b
-	ldr	q0, Lxts_magic
+	adrp	x9, Lxts_magic@PAGE
+	ldr	q0, [x9, Lxts_magic@PAGEOFF]
 	shl	v18.16b, v2.16b, #1
 	ext	v1.16b, v2.16b, v2.16b,#15
 	ushr	v1.16b, v1.16b, #7
@@ -3547,12 +3579,14 @@ _vpsm4_ex_xts_encrypt:
 	mov	w28,w6
 	ld1	{v16.4s}, [x5]
 	mov	x3,x27
-	ldr	q26, Lsbox_magic
-	ldr	q27, Lsbox_magic+16
-	ldr	q28, Lsbox_magic+32
-	ldr	q29, Lsbox_magic+48
-	ldr	q30, Lsbox_magic+64
-	ldr	q31, Lsbox_magic+80
+	adrp	x9, Lsbox_magic@PAGE
+	add	x9, x9, Lsbox_magic@PAGEOFF
+	ldr	q26, [x9]
+	ldr	q27, [x9, 16]
+	ldr	q28, [x9, 32]
+	ldr	q29, [x9, 48]
+	ldr	q30, [x9, 64]
+	ldr	q31, [x9, 80]
 #ifndef __AARCH64EB__
 	rev32	v16.16b,v16.16b
 #endif
@@ -4170,14 +4204,16 @@ Lxts_4_blocks_process:
 	rev32	v25.16b,v25.16b
 #endif
 	mov	v2.16b,v25.16b
-	ldr	q0, Lxts_magic
+	adrp	x9, Lxts_magic@PAGE
+	ldr	q0, [x9, Lxts_magic@PAGEOFF]
 	shl	v17.16b, v2.16b, #1
 	ext	v1.16b, v2.16b, v2.16b,#15
 	ushr	v1.16b, v1.16b, #7
 	mul	v1.16b, v1.16b, v0.16b
 	eor	v17.16b, v17.16b, v1.16b
 	mov	v2.16b,v17.16b
-	ldr	q0, Lxts_magic
+	adrp	x9, Lxts_magic@PAGE
+	ldr	q0, [x9, Lxts_magic@PAGEOFF]
 	shl	v18.16b, v2.16b, #1
 	ext	v1.16b, v2.16b, v2.16b,#15
 	ushr	v1.16b, v1.16b, #7
@@ -4194,7 +4230,8 @@ Lxts_4_blocks_process:
 	rev32	v17.16b,v17.16b
 #endif
 	mov	v2.16b,v17.16b
-	ldr	q0, Lxts_magic
+	adrp	x9, Lxts_magic@PAGE
+	ldr	q0, [x9, Lxts_magic@PAGEOFF]
 	shl	v18.16b, v2.16b, #1
 	ext	v1.16b, v2.16b, v2.16b,#15
 	ushr	v1.16b, v1.16b, #7

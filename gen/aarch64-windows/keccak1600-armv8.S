@@ -1,6 +1,6 @@
 #include "arm_arch.h"
 
-.text
+.section	.rodata
 
 .align	8	// strategic alignment and padding that allows to use
 		// address value as loop termination condition...
@@ -32,13 +32,16 @@ iotas:
 .quad	0x0000000080000001
 .quad	0x8000000080008008
 
+.text
+
 .def KeccakF1600_int
    .type 32
 .endef
 .align	5
 KeccakF1600_int:
 	AARCH64_SIGN_LINK_REGISTER
-	adr	x28,iotas
+	adrp	x28,iotas
+	add	x28,x28,:lo12:iotas
 	stp	x28,x30,[sp,#16]		// 32 bytes on top are mine
 	b	Loop
 .align	4
@@ -588,7 +591,8 @@ Lsqueeze_done:
 .align	5
 KeccakF1600_ce:
 	mov	x9,#24
-	adr	x10,iotas
+	adrp	x10,iotas
+	add	x10,x10,:lo12:iotas
 	b	Loop_ce
 .align	4
 Loop_ce:

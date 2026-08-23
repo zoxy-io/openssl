@@ -2084,10 +2084,12 @@ rsaz_512_gather4:
 
 
 
+.section	.rodata
 .p2align	6
 .Linc:
 .long	0,0, 1,1
 .long	2,2, 2,2
+.text
 
 .def	se_handler;	.scl 3;	.type 32;	.endef
 .p2align	4

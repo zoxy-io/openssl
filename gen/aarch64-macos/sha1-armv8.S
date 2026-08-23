@@ -1080,7 +1080,8 @@ Lv8_entry:
 	stp	x29,x30,[sp,#-16]!
 	add	x29,sp,#0
 
-	adr	x4,Lconst
+	adrp	x4,Lconst@PAGE
+	add	x4,x4,Lconst@PAGEOFF
 	eor	v1.16b,v1.16b,v1.16b
 	ld1	{v0.4s},[x0],#16
 	ld1	{v1.s}[0],[x0]
@@ -1202,6 +1203,9 @@ Loop_hw:
 
 	ldr	x29,[sp],#16
 	ret
+
+
+.section	__TEXT,__const
 
 .align	6
 Lconst:

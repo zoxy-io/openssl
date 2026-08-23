@@ -494,6 +494,7 @@ SHA3_squeeze:
 	.byte	0xf3,0xc3
 .cfi_endproc	
 .size	SHA3_squeeze,.-SHA3_squeeze
+.section	.rodata
 .align	256
 .quad	0,0,0,0,0,0,0,0
 .type	iotas,@object

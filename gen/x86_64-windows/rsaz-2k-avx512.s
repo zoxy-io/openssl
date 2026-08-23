@@ -417,7 +417,7 @@ ossl_rsaz_amm52x20_x1_ifma256:
 	.byte	0xf3,0xc3
 
 .LSEH_end_ossl_rsaz_amm52x20_x1_ifma256:
-.data	
+.section	.rodata
 .p2align	5
 .Lmask52x4:
 .quad	0xfffffffffffff
@@ -899,7 +899,7 @@ ossl_extract_multiplier_2x20_win5:
 	.byte	0xf3,0xc3
 
 
-.data	
+.section	.rodata
 .p2align	5
 .Lones:
 .quad	1,1,1,1

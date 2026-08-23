@@ -716,6 +716,7 @@ gcm_ghash_4bit:
 .p2align	4
 gcm_init_clmul:
 
+.byte	243,15,30,250
 .L_init_clmul:
 .LSEH_begin_gcm_init_clmul:
 
@@ -1347,6 +1348,7 @@ gcm_ghash_clmul:
 .p2align	5
 gcm_init_avx:
 
+.byte	243,15,30,250
 .LSEH_begin_gcm_init_avx:
 
 .byte	0x48,0x83,0xec,0x18
@@ -1872,6 +1874,7 @@ gcm_ghash_avx:
 	.byte	0xf3,0xc3
 
 
+.section	.rodata
 .p2align	6
 .Lbswap_mask:
 .byte	15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0
@@ -1925,6 +1928,7 @@ gcm_ghash_avx:
 
 .byte	71,72,65,83,72,32,102,111,114,32,120,56,54,95,54,52,44,32,67,82,89,80,84,79,71,65,77,83,32,98,121,32,60,97,112,112,114,111,64,111,112,101,110,115,115,108,46,111,114,103,62,0
 .p2align	6
+.text
 
 .def	se_handler;	.scl 3;	.type 32;	.endef
 .p2align	4

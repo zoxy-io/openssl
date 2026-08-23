@@ -586,7 +586,7 @@ L$ossl_rsaz_amm52x40_x1_ifma256_epilogue:
 	.byte	0xf3,0xc3
 
 
-.data	
+.section	__DATA,__const
 .p2align	5
 L$mask52x4:
 .quad	0xfffffffffffff
@@ -1333,7 +1333,7 @@ L$loop_320:
 	.byte	0xf3,0xc3
 
 
-.data	
+.section	__DATA,__const
 .p2align	5
 L$ones:
 .quad	1,1,1,1

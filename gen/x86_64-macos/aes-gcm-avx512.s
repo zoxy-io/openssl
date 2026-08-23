@@ -135934,7 +135934,7 @@ L$abort_gmult:
 	.byte	0xf3,0xc3
 
 
-.data	
+.section	__DATA,__const
 .p2align	4
 POLY:.quad	0x0000000000000001, 0xC200000000000000
 

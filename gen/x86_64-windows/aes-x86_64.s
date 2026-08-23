@@ -1905,6 +1905,7 @@ AES_cbc_encrypt:
 	.byte	0xf3,0xc3
 
 .LSEH_end_AES_cbc_encrypt:
+.section	.rodata
 .p2align	6
 .LAES_Te:
 .long	0xa56363c6,0xa56363c6
@@ -2691,6 +2692,7 @@ AES_cbc_encrypt:
 .long	0x1b1b1b1b, 0x1b1b1b1b, 0, 0
 .byte	65,69,83,32,102,111,114,32,120,56,54,95,54,52,44,32,67,82,89,80,84,79,71,65,77,83,32,98,121,32,60,97,112,112,114,111,64,111,112,101,110,115,115,108,46,111,114,103,62,0
 .p2align	6
+.text
 
 .def	block_se_handler;	.scl 3;	.type 32;	.endef
 .p2align	4

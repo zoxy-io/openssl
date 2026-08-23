@@ -40,10 +40,14 @@ _poly1305_init:
 
 	tst	w17,#ARMV7_NEON
 
-	adr	x12,Lpoly1305_blocks
-	adr	x7,Lpoly1305_blocks_neon
-	adr	x13,Lpoly1305_emit
-	adr	x8,Lpoly1305_emit_neon
+	adrp	x12,_poly1305_blocks@PAGE
+	add	x12,x12,Lpoly1305_blocks@PAGEOFF
+	adrp	x7,poly1305_blocks_neon@PAGE
+	add	x7,x7,Lpoly1305_blocks_neon@PAGEOFF
+	adrp	x13,_poly1305_emit@PAGE
+	add	x13,x13,Lpoly1305_emit@PAGEOFF
+	adrp	x8,poly1305_emit_neon@PAGE
+	add	x8,x8,Lpoly1305_emit_neon@PAGEOFF
 
 	csel	x12,x12,x7,eq
 	csel	x13,x13,x8,eq
@@ -373,7 +377,8 @@ Linit_neon:
 	ldr	x30,[sp,#8]
 
 	add	x16,x1,#32
-	adr	x17,Lzeros
+	adrp	x17,Lzeros@PAGE
+	add	x17,x17,Lzeros@PAGEOFF
 	subs	x2,x2,#64
 	csel	x16,x17,x16,lo
 
@@ -385,7 +390,8 @@ Linit_neon:
 .align	4
 Leven_neon:
 	add	x16,x1,#32
-	adr	x17,Lzeros
+	adrp	x17,Lzeros@PAGE
+	add	x17,x17,Lzeros@PAGEOFF
 	subs	x2,x2,#64
 	csel	x16,x17,x16,lo
 
@@ -867,6 +873,8 @@ Lpoly1305_emit_neon:
 
 	ret
 
+
+.section	__TEXT,__const
 
 .align	5
 Lzeros:

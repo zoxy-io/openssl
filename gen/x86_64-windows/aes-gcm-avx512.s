@@ -136387,7 +136387,7 @@ ossl_gcm_gmult_avx512:
 .byte	80
 .byte	.Ldecrypt_seh_push_rbx-.Ldecrypt_seh_begin
 .byte	48
-.data	
+.section	.rodata
 .p2align	4
 POLY:.quad	0x0000000000000001, 0xC200000000000000
 

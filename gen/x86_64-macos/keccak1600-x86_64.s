@@ -464,6 +464,7 @@ L$done_squeeze:
 	.byte	0xf3,0xc3
 
 
+.section	__DATA,__const
 .p2align	8
 .quad	0,0,0,0,0,0,0,0
 
