@@ -1,6 +1,13 @@
 const std = @import("std");
 const config = @import("./config.zig");
 
+/// `std.process.Child.Term` lost its `success()` helper in Zig 0.16. A child
+/// killed by a signal failed just as surely as one that exited non-zero, so
+/// both answer false here.
+fn succeeded(term: std.process.Child.Term) bool {
+    return term == .exited and term.exited == 0;
+}
+
 const Options = struct {
     openssl_root: []const u8,
     /// Absolute path to the Configure --config file (mingw-arm64.conf).
@@ -105,7 +112,7 @@ fn generateOne(
     const res = try std.process.run(alloc, init.io, .{ .argv = &argv, .environ_map = env });
     if (res.stdout.len > 0)
         std.log.info("{s}", .{res.stdout});
-    if (!res.term.success()) {
+    if (!succeeded(res.term)) {
         if (res.stderr.len > 0)
             std.log.err("{s}", .{res.stderr});
         return error.PerlScriptFailed;
@@ -196,7 +203,7 @@ fn generateTemplate(
         .argv = argv.items,
         .cwd = .{ .path = openssl_root },
     });
-    if (!res.term.success()) {
+    if (!succeeded(res.term)) {
         if (res.stderr.len > 0)
             std.log.err("{s}", .{res.stderr});
         return error.TemplateFailed;
@@ -218,7 +225,7 @@ fn runChecked(
     env: *const std.process.Environ.Map,
 ) !void {
     const res = try std.process.run(alloc, init.io, .{ .argv = argv, .cwd = cwd, .environ_map = env });
-    if (!res.term.success()) {
+    if (!succeeded(res.term)) {
         if (res.stderr.len > 0)
             std.log.err("{s}", .{res.stderr});
         return error.CommandFailed;
