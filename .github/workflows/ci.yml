@@ -45,13 +45,17 @@ jobs:
       - name: Link a consumer against it
         run: |
           set -euo pipefail
-          lib=$(find .zig-cache -name libopenssl.a | head -1)
-          test -n "$lib" || { echo "::error::no libopenssl.a was produced"; exit 1; }
-          inc=$(find .zig-cache -type d -name openssl -path '*include*' | head -1 | xargs dirname)
+          # `zig build` installs both halves, so use the declared layout rather
+          # than digging through the cache for them.
+          test -f zig-out/lib/libopenssl.a || {
+            echo "::error::no libopenssl.a was installed"; exit 1; }
+          test -f zig-out/include/openssl/crypto.h || {
+            echo "::error::headers were not installed"; exit 1; }
           cat > /tmp/probe.c <<'EOF'
           #include <openssl/crypto.h>
           #include <openssl/opensslv.h>
           #include <stdio.h>
+          #include <stdlib.h>
           static void *m(size_t n, const char *f, int l) { (void)f; (void)l; return malloc(n); }
           static void *r(void *p, size_t n, const char *f, int l) { (void)f; (void)l; return realloc(p, n); }
           static void  d(void *p, const char *f, int l) { (void)f; (void)l; free(p); }
@@ -61,7 +65,8 @@ jobs:
               return ok == 1 ? 0 : 1;
           }
           EOF
-          zig cc -target ${{ matrix.target }} -I "$inc" -o /tmp/probe /tmp/probe.c "$lib"
+          zig cc -target ${{ matrix.target }} -I zig-out/include \
+            -o /tmp/probe /tmp/probe.c zig-out/lib/libopenssl.a
           echo "linked ok"
 
       # Only the host's own target can be executed, and that is enough: the
