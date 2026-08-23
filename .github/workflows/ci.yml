@@ -1,0 +1,92 @@
+name: ci
+
+# This repository has two consumers that link it into a TLS path —
+# zoxy-io/zoxy terminates TLS with it, zoxy-io/zrk originates — and until this
+# file existed it had no gate of any kind. The fork it is modelled on,
+# zoxy-io/ztls, ran zero workflows for its whole life and the first run found a
+# commit that had left twenty-one callers uncompilable. Same shape of repo,
+# same trap; this is the trap closed in advance.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # Cross-compiling every consumer target from one runner is the whole point of
+  # this package: it exists because `linkSystemLibrary("crypto")` resolves the
+  # *host's* libcrypto, which is what cost zoxy its x86_64-macos platform. If
+  # that stops working here, both consumers lose it downstream.
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      # Which target broke is the useful answer, not that one did.
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-linux-musl
+          - aarch64-linux-musl
+          - x86_64-macos
+          - aarch64-macos
+    steps:
+      - uses: actions/checkout@v5
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      - name: Build libcrypto
+        run: zig build -Doptimize=ReleaseFast -Dtarget=${{ matrix.target }}
+
+      # Building is not the claim; linking is. A consumer's failure mode is an
+      # archive that compiles and then cannot satisfy a symbol, so link a real
+      # program against it — and one that calls `CRYPTO_set_mem_functions`
+      # specifically, because that is the API zoxy's fixed libcrypto heap
+      # cannot start without and the reason this is OpenSSL and not BoringSSL.
+      - name: Link a consumer against it
+        run: |
+          set -euo pipefail
+          # `zig build` installs both halves, so use the declared layout rather
+          # than digging through the cache for them.
+          test -f zig-out/lib/libopenssl.a || {
+            echo "::error::no libopenssl.a was installed"; exit 1; }
+          test -f zig-out/include/openssl/crypto.h || {
+            echo "::error::headers were not installed"; exit 1; }
+          cat > /tmp/probe.c <<'EOF'
+          #include <openssl/crypto.h>
+          #include <openssl/opensslv.h>
+          #include <stdio.h>
+          #include <stdlib.h>
+          static void *m(size_t n, const char *f, int l) { (void)f; (void)l; return malloc(n); }
+          static void *r(void *p, size_t n, const char *f, int l) { (void)f; (void)l; return realloc(p, n); }
+          static void  d(void *p, const char *f, int l) { (void)f; (void)l; free(p); }
+          int main(void) {
+              int ok = CRYPTO_set_mem_functions(m, r, d);
+              printf("%s\nCRYPTO_set_mem_functions: %d\n", OPENSSL_VERSION_TEXT, ok);
+              return ok == 1 ? 0 : 1;
+          }
+          EOF
+          zig cc -target ${{ matrix.target }} -I zig-out/include \
+            -o /tmp/probe /tmp/probe.c zig-out/lib/libopenssl.a
+          echo "linked ok"
+
+      # Only the host's own target can be executed, and that is enough: the
+      # question the probe answers — does the hook install, or is this a
+      # BoringSSL-shaped libcrypto — is not target-specific.
+      - name: Run it
+        if: matrix.target == 'x86_64-linux-musl'
+        run: /tmp/probe
+
+  # `zig build gen` is the only way to move the OpenSSL pin, and an ordinary
+  # build never compiles it — which is exactly how it came to be broken under
+  # Zig 0.16 (`std.process.Child.Term` lost `success()`) without anyone
+  # noticing. Compiling it is cheap; running it needs perl and six variants'
+  # worth of perlasm, so that stays a maintainer step.
+  generator:
+    name: generator compiles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+      - run: zig build-exe generate.zig -femit-bin=/tmp/generate
