@@ -2,6 +2,29 @@
 
 This is openssl ported to the Zig Build System.
 
+## Artifacts
+
+Two, matching upstream's own division:
+
+```zig
+const openssl = b.dependency("openssl", .{ .target = target, .optimize = optimize });
+module.linkLibrary(openssl.artifact("crypto")); // libcrypto.a — primitives
+module.linkLibrary(openssl.artifact("ssl"));    // libssl.a — the TLS stack
+```
+
+They emit `libcrypto.a` and `libssl.a`, so a consumer whose linker asks
+for `-lcrypto` resolves it by name. `ssl` links `crypto` itself; the
+dependency runs one way and never back.
+
+Link only what you use. A consumer that implements TLS itself and wants
+the primitives links `crypto` alone and never compiles the 95-file TLS
+protocol stack — which is the point of two artifacts rather than one
+archive the linker is trusted to prune.
+
+Upgrading from the single `artifact("openssl")`: that name is gone.
+Pins are by content hash, so nothing breaks until you move your pin, and
+when you do it is one line per consumer.
+
 ## Status
 
 I was able to use this to build [CPython](https://github.com/thejoshwolfe/cpython) for x86_64-linux.

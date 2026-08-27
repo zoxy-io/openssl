@@ -47,8 +47,10 @@ jobs:
           set -euo pipefail
           # `zig build` installs both halves, so use the declared layout rather
           # than digging through the cache for them.
-          test -f zig-out/lib/libopenssl.a || {
-            echo "::error::no libopenssl.a was installed"; exit 1; }
+          test -f zig-out/lib/libcrypto.a || {
+            echo "::error::no libcrypto.a was installed"; exit 1; }
+          test -f zig-out/lib/libssl.a || {
+            echo "::error::no libssl.a was installed"; exit 1; }
           test -f zig-out/include/openssl/crypto.h || {
             echo "::error::headers were not installed"; exit 1; }
           cat > /tmp/probe.c <<'EOF'
@@ -66,15 +68,42 @@ jobs:
           }
           EOF
           zig cc -target ${{ matrix.target }} -I zig-out/include \
-            -o /tmp/probe /tmp/probe.c zig-out/lib/libopenssl.a
-          echo "linked ok"
+            -o /tmp/probe /tmp/probe.c zig-out/lib/libcrypto.a
+          echo "linked libcrypto ok"
+
+          # libssl is the half no consumer links today, which is exactly
+          # why it needs a gate: it sat in this package for its whole
+          # life referencing QUIC symbols that were never compiled, and
+          # nothing noticed because the one archive it shipped in was
+          # never resolved against. Link it, and against libcrypto only
+          # — the dependency runs one way.
+          cat > /tmp/sslprobe.c <<'EOF'
+          #include <openssl/ssl.h>
+          #include <stdio.h>
+          int main(void) {
+              SSL_CTX *ctx = SSL_CTX_new(TLS_client_method());
+              if (!ctx) return 1;
+              if (!SSL_CTX_set_min_proto_version(ctx, TLS1_3_VERSION)) return 1;
+              SSL *s = SSL_new(ctx);
+              if (!s) return 1;
+              printf("libssl: %s\n", SSL_get_version(s));
+              SSL_free(s); SSL_CTX_free(ctx);
+              return 0;
+          }
+          EOF
+          zig cc -target ${{ matrix.target }} -I zig-out/include \
+            -o /tmp/sslprobe /tmp/sslprobe.c \
+            zig-out/lib/libssl.a zig-out/lib/libcrypto.a
+          echo "linked libssl ok"
 
       # Only the host's own target can be executed, and that is enough: the
       # question the probe answers — does the hook install, or is this a
       # BoringSSL-shaped libcrypto — is not target-specific.
-      - name: Run it
+      - name: Run them
         if: matrix.target == 'x86_64-linux-musl'
-        run: /tmp/probe
+        run: |
+          /tmp/probe
+          /tmp/sslprobe
 
   # `zig build gen` is the only way to move the OpenSSL pin, and an ordinary
   # build never compiles it — which is exactly how it came to be broken under

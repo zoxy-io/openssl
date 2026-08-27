@@ -30,12 +30,55 @@ pub fn build(b: *std.Build) void {
     gen_run.has_side_effects = true;
     b.step("gen", "regenerate asm and template-derived headers/sources").dependOn(&gen_run.step);
 
+    // Two artifacts, not one. Every consumer of this package speaks TLS
+    // itself and links only the primitives, so shipping libssl inside
+    // the same archive meant compiling a C TLS protocol stack — 92
+    // files, a fifth of the compiled bytes — that the linker then
+    // dropped. Dropping it is a property of the *link*; splitting makes
+    // it a property of the *artifact*, which is what a primitives-only
+    // dependency policy actually claims.
+    //
+    // `crypto` emits libcrypto.a and `ssl` emits libssl.a, so a
+    // consumer's `-lcrypto` resolves by name with no alias copy.
+    const crypto = buildHalf(b, target, optimize, upstream, .crypto);
+    const ssl = buildHalf(b, target, optimize, upstream, .ssl);
+    // libssl calls into libcrypto and never the reverse, which is why
+    // the split is clean at all; the link order states it.
+    ssl.root_module.linkLibrary(crypto);
+
+    b.installArtifact(crypto);
+    b.installArtifact(ssl);
+}
+
+/// Which library is being built. The halves share every flag, include
+/// path and generated header; only their source lists differ.
+const Half = enum {
+    crypto,
+    ssl,
+
+    /// Emitted as `lib<name>.a`, the names a consumer's linker already
+    /// looks for.
+    fn artifactName(half: Half) []const u8 {
+        return switch (half) {
+            .crypto => "crypto",
+            .ssl => "ssl",
+        };
+    }
+};
+
+fn buildHalf(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    upstream: *std.Build.Dependency,
+    half: Half,
+) *std.Build.Step.Compile {
     const mod = b.createModule(.{
         .target = target,
         .optimize = optimize,
         .link_libc = true,
     });
-    const lib = b.addLibrary(.{ .name = "openssl", .root_module = mod });
+    const lib = b.addLibrary(.{ .name = half.artifactName(), .root_module = mod });
 
     const variant = for (config.variants) |v| {
         if (target.result.cpu.arch == v.arch and target.result.os.tag == v.os)
@@ -99,7 +142,7 @@ pub fn build(b: *std.Build) void {
             mod.linkSystemLibrary(sys_lib, .{});
     }
 
-    mod.addCSourceFiles(.{
+    if (half == .ssl) mod.addCSourceFiles(.{
         .root = upstream.path("ssl"),
         .files = &.{
             "bio_ssl.c",
@@ -123,9 +166,11 @@ pub fn build(b: *std.Build) void {
             "quic/quic_impl.c",
             "quic/quic_lcidm.c",
             "quic/quic_method.c",
+            "quic/quic_obj.c",
             "quic/quic_port.c",
             "quic/quic_rcidm.c",
             "quic/quic_reactor.c",
+            "quic/quic_reactor_wait_ctx.c",
             "quic/quic_record_rx.c",
             "quic/quic_record_shared.c",
             "quic/quic_record_tx.c",
@@ -139,6 +184,7 @@ pub fn build(b: *std.Build) void {
             "quic/quic_statm.c",
             "quic/quic_stream_map.c",
             "quic/quic_thread_assist.c",
+            "quic/quic_tls_api.c",
             "quic/quic_tls.c",
             "quic/quic_trace.c",
             "quic/quic_tserver.c",
@@ -150,15 +196,15 @@ pub fn build(b: *std.Build) void {
             "quic/uint_set.c",
             "record/methods/dtls_meth.c",
             //"record/methods/ktls_meth.c",
-            "record/methods/ssl3_cbc.c",
             "record/methods/ssl3_meth.c",
             "record/methods/tls13_meth.c",
             "record/methods/tls1_meth.c",
             "record/methods/tls_common.c",
             "record/methods/tls_multib.c",
-            "record/methods/tls_pad.c",
             "record/methods/tlsany_meth.c",
             "record/rec_layer_d1.c",
+            "rio/poll_builder.c",
+            "rio/rio_notifier.c",
             "record/rec_layer_s3.c",
             "rio/poll_immediate.c",
             "s3_enc.c",
@@ -198,7 +244,20 @@ pub fn build(b: *std.Build) void {
         .flags = c_flags.items,
     });
 
-    mod.addCSourceFiles(.{
+    // Two constant-time CBC helpers live under ssl/ for historical
+    // reasons but belong to libcrypto: the providers' HMAC and generic
+    // block-cipher code call them, so they compile into the crypto half.
+    // Upstream's own providers/build.info reaches across the same way.
+    if (half == .crypto) mod.addCSourceFiles(.{
+        .root = upstream.path("ssl"),
+        .files = &.{
+            "record/methods/ssl3_cbc.c",
+            "record/methods/tls_pad.c",
+        },
+        .flags = c_flags.items,
+    });
+
+    if (half == .crypto) mod.addCSourceFiles(.{
         .root = upstream.path("providers"),
         .files = &.{
             //"legacyprov.c",
@@ -411,7 +470,7 @@ pub fn build(b: *std.Build) void {
         .flags = c_flags.items,
     });
 
-    mod.addCSourceFiles(.{
+    if (half == .crypto) mod.addCSourceFiles(.{
         .root = local_providers,
         .files = &.{
             "common/der/der_digests_gen.c",
@@ -429,14 +488,14 @@ pub fn build(b: *std.Build) void {
 
     // Arch-specific C sources: the asm-backed glue plus the C files the other
     // arch replaces with asm but this one keeps (see config.zig).
-    mod.addCSourceFiles(.{
+    if (half == .crypto) mod.addCSourceFiles(.{
         .root = upstream.path("crypto"),
         .files = arch_config.sources,
         .flags = c_flags.items,
     });
 
     // OS-specific entropy seeding source (upstream picks it via Configure).
-    mod.addCSourceFiles(.{
+    if (half == .crypto) mod.addCSourceFiles(.{
         .root = upstream.path("providers"),
         .files = &.{switch (target.result.os.tag) {
             .windows => "implementations/rands/seeding/rand_win.c",
@@ -447,14 +506,14 @@ pub fn build(b: *std.Build) void {
 
     // Windows-only store provider (enabled by upstream on Windows).
     if (target.result.os.tag == .windows) {
-        mod.addCSourceFiles(.{
+        if (half == .crypto) mod.addCSourceFiles(.{
             .root = upstream.path("providers"),
             .files = &.{"implementations/storemgmt/winstore_store.c"},
             .flags = c_flags.items,
         });
     }
 
-    mod.addCSourceFiles(.{
+    if (half == .crypto) mod.addCSourceFiles(.{
         .root = upstream.path("crypto"),
         .files = &.{
             //"LPdir_nyi.c",
@@ -1300,10 +1359,10 @@ pub fn build(b: *std.Build) void {
         var files = std.ArrayList([]const u8).initCapacity(b.allocator, scripts.len) catch @panic("OOM");
         for (scripts) |s|
             files.appendAssumeCapacity(b.fmt("{s}{s}", .{ s.output, arch_config.asm_ext }));
-        mod.addCSourceFiles(.{ .root = asm_root, .files = files.items });
+        if (half == .crypto) mod.addCSourceFiles(.{ .root = asm_root, .files = files.items });
     }
 
-    mod.addCSourceFiles(.{
+    if (half == .crypto) mod.addCSourceFiles(.{
         .root = local_crypto,
         .files = &.{
             "params_idx.c",
@@ -1335,5 +1394,5 @@ pub fn build(b: *std.Build) void {
     lib.installHeadersDirectory(shared_include, "", .{});
     lib.installHeadersDirectory(variant_include, "", .{});
 
-    b.installArtifact(lib);
+    return lib;
 }
