@@ -1,13 +1,13 @@
 .{
     .name = .openssl,
-    .version = "3.5.7",
+    .version = "3.5.8",
     .fingerprint = 0x773a47f1dd422f4c,
     .minimum_zig_version = "0.16.0",
 
     .dependencies = .{
         .openssl = .{
-            .url = "git+https://github.com/openssl/openssl?ref=openssl-3.5.7#8cf17aaeb4599f8af87fefd810b5b5fee90fe69e",
-            .hash = "N-V-__8AAEO5zQfzwtslaZ9vYak0IT_5TwQOJKM5qxKWfdMH",
+            .url = "git+https://github.com/openssl/openssl?ref=openssl-3.5.8#f4dc4d58b48d346a8270183f89acf826d459b0ca",
+            .hash = "N-V-__8AAH4B0QerQrRPKmyMh7lcmHoHPkgFeKur_N1W5Y_k",
         },
     },
 
