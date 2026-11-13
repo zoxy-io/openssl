@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: mlugg/setup-zig@v2
         with:
-          version: 0.16.0
+          version: 0.17.1
 
       - name: Build libcrypto
         run: zig build -Doptimize=ReleaseFast -Dtarget=${{ matrix.target }}
@@ -117,5 +117,5 @@ jobs:
       - uses: actions/checkout@v5
       - uses: mlugg/setup-zig@v2
         with:
-          version: 0.16.0
+          version: 0.17.1
       - run: zig build-exe generate.zig -femit-bin=/tmp/generate
