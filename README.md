@@ -34,6 +34,7 @@ require fiddling with the build script to take into account the target.
 
 ## Zig version compatibility
 
+- `0.17.x`
 - `0.16.x`
 - `0.15.x`
 - `0.14.x`
